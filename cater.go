@@ -18,7 +18,11 @@ type FileStat struct {
 	Hostname string
 }
 
-func cater(path string) {
+
+
+func cater(path string) bytes.Buffer {
+	var response bytes.Buffer;
+
 	fmt.Printf("search path: %s\n", path)
 	conn, _ := redis.Dial("tcp", ":6379")
 	defer conn.Close()
@@ -40,12 +44,20 @@ func cater(path string) {
 		plaintext, _ := ioutil.ReadAll(gr)
 
 		for _, a := range strings.Split(string(plaintext), "\n") {
-			fmt.Printf("%s:%s\n", fs.Hostname, a)
+			line := fmt.Sprintf("%s:%s\n", fs.Hostname, a)
+			response.Write([]byte(line))
 		}
 	}
+	return response
 	
 }
 
 func main() {
-	cater(string(os.Args[1]))
+	if len(os.Args) != 2 {
+		fmt.Printf("usage: %s filepattern\n", os.Args[0])
+		return
+	}
+	cater_response := cater(os.Args[1])
+	fmt.Printf(cater_response.String())
 }
+
