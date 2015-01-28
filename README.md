@@ -33,6 +33,9 @@ Gather `etc` on all nodes
 
 Check node1's /etc/passwd to see if it has a root user
 
+    laptop$ ./cater *:/etc/passwd |grep root
+	node1:root:x:0:0:root:/root:/bin/bash
+	
     laptop$ ./cater node1:/etc/passwd |grep -c root
 	1
 
@@ -40,3 +43,8 @@ Check to see how many root users in across all the nodes
 
     laptop$ ./cater *:/etc/passwd |grep -c root
 	3
+	
+    laptop$ ./cater *:/etc/passwd |grep root
+	node1:root:x:0:0:root:/root:/bin/bash
+	node2:root:x:0:0:root:/root:/bin/bash
+	node3:root:x:0:0:root:/root:/bin/bash
