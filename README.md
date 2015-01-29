@@ -21,6 +21,11 @@ It will push all the files from /etc into a redis server.
 
 run `cater` to print file contents from redis server.
 
+* Compressed file contents
+* Uncompressed meta data about files
+* Deuplication of file contents
+* meta data stored as JSON
+* content stored as compressed gzipped plain text
 
 Examples
 ---------
@@ -48,3 +53,15 @@ Check to see how many root users in across all the nodes
 	node1:root:x:0:0:root:/root:/bin/bash
 	node2:root:x:0:0:root:/root:/bin/bash
 	node3:root:x:0:0:root:/root:/bin/bash
+
+
+To Do
+------
+
+* Configurable redis server locations
+* Better mutli host support
+* smart inbuild simple grep, in deduplicated environment
+* Testing, once POC has been completed
+* Scale testing, usage of `KEYS` will not scale, switch to `SCAN`
+* Support Redis cluster
+* Clean up memeory consumption
