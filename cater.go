@@ -23,10 +23,9 @@ type FileStat struct {
 // Store every hostname that matches the hash
 // Fake the file for each to the stdout buffer
 type Hash struct {
-	Hostnames  string
+	Hostnames  []string
 	Contents   []byte
 }
-
 
 func StringInArray(a string, list map[string]Hash) bool {
 	for q, _ := range list {
@@ -52,8 +51,14 @@ func cater(path string) bytes.Buffer {
 		plaintext, _ := ioutil.ReadAll(gr)
 
 		for _, a := range strings.Split(string(plaintext), "\n") {
-			line := fmt.Sprintf("%s:%s\n", hash.Hostnames, a)
-			response.Write([]byte(line))
+			if len(a) == 0 {
+				continue
+			}
+
+			for _, b := range hash.Hostnames {
+				line := fmt.Sprintf("%s:%s\n", b, a)
+				response.Write([]byte(line))
+			}
 		}
 	}
 	return response
@@ -62,7 +67,7 @@ func cater(path string) bytes.Buffer {
 
 
 func grab(path string) map[string]Hash {
-	var file_contents_gzipped string
+	var file_contents_gzipped []byte
 	knownHashes := make(map[string]Hash)
 
 	fmt.Printf("search path: %s\n", path)
@@ -79,12 +84,21 @@ func grab(path string) map[string]Hash {
 
 		// Check if we already have this hash, before wasting redis time
 		if ! StringInArray(fs.Hash, knownHashes) {
-			file_contents_gzipped, _ = redis.String(conn.Do("GET", fs.Hash))
+			file_contents_gzipped_string, _ := redis.String(conn.Do("GET", fs.Hash))
+			file_contents_gzipped = []byte(file_contents_gzipped_string)
+			
+			fmt.Println("NEW HASH")
 			knownHashes[fs.Hash] = Hash{
-				// Need to switch this to an array of hostnames
-				// to fake the output and save lookups, ect
-				Hostnames: fs.Hostname,
+				Hostnames: []string{fs.Hostname},
 				Contents: []byte(file_contents_gzipped),
+			}
+		} else {
+			file_contents_gzipped = knownHashes[fs.Hash].Contents
+			old_hostnames := knownHashes[fs.Hash].Hostnames
+			new_hostnames := append(old_hostnames, fs.Hostname)
+			knownHashes[fs.Hash] = Hash{
+				Hostnames: new_hostnames,
+				Contents: file_contents_gzipped,
 			}
 		}
 	}
