@@ -8,8 +8,10 @@ import (
 	"bytes"
 	"io/ioutil"
 	"strings"
-	"os"
+	//"os"
 )
+
+/*
 
 type FileStat struct {
 	Path     string
@@ -17,7 +19,7 @@ type FileStat struct {
 	Size     int64
 	Hostname string
 }
-
+*/
 
 // Make the Hostnames an array,
 // Store every hostname that matches the hash
@@ -105,6 +107,7 @@ func grab(path string) map[string]Hash {
 	return  knownHashes
 }
 
+/*
 func main() {
 	if len(os.Args) != 2 {
 		fmt.Printf("usage: %s filepattern\n", os.Args[0])
@@ -113,4 +116,4 @@ func main() {
 	cater_response := cater(os.Args[1])
 	fmt.Printf(cater_response.String())
 }
-
+*/
