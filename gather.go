@@ -50,10 +50,9 @@ func WriteToRedisCompressed(key string, value []byte) {
 }
 
 
-func GrabWalk(dirPath string) bytes.Buffer {
+func GrabWalk(dirPath string) {
 
 	fullPath, err := filepath.Abs(dirPath)
-	var whole_buffer bytes.Buffer;
 
 	check(err)
 	
@@ -61,28 +60,33 @@ func GrabWalk(dirPath string) bytes.Buffer {
 		if strings.Contains(path, ".git") {
 			return nil
 		}
-		single_file_buffer := getFileInfo(path, fi)
-		whole_buffer.WriteString(single_file_buffer.String())
+
+		file_md5sum, fileStatJson, file_contents := getFileInfo(path, fi)
+
+		hostname_key := fmt.Sprintf("%s:%s", global_hostname, path)
+		WriteToRedis(hostname_key, fileStatJson)
+		WriteToRedisCompressed(file_md5sum, file_contents)
 		
 		return nil
 	}
 	filepath.Walk(fullPath, callback)
 
-	return whole_buffer
+	return 
 }
 
-func getFileInfo(path string, fi os.FileInfo) bytes.Buffer {
-	var buffer bytes.Buffer;
+func getFileInfo(path string, fi os.FileInfo) (string, []byte, []byte) {
+	var empty_bytes []byte
+	var empty_string string;
 
 	if fi.IsDir() {
-		return buffer
+		return empty_string, empty_bytes, empty_bytes
 	}
 	
 	mm, _ := magicmime.New(magicmime.MAGIC_MIME_TYPE | magicmime.MAGIC_SYMLINK | magicmime.MAGIC_ERROR)
 	mimetype, _ := mm.TypeByFile(path)
 
 	if strings.Contains(mimetype, "application"){
-		return buffer
+		return empty_string, empty_bytes, empty_bytes
 	}
 
 
@@ -100,13 +104,9 @@ func getFileInfo(path string, fi os.FileInfo) bytes.Buffer {
 		Hostname: global_hostname,
 	}
 	fileStatJson, _ := json.Marshal(fs)
+	
 
-	hostname_key := fmt.Sprintf("%s:%s", global_hostname, path)
-	WriteToRedis(hostname_key, fileStatJson)
-
-	WriteToRedisCompressed(file_md5sum, file_contents)
-
-	return buffer
+	return file_md5sum, fileStatJson, file_contents
 
 }
 
