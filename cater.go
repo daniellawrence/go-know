@@ -8,10 +8,9 @@ import (
 	"bytes"
 	"io/ioutil"
 	"strings"
-	//"os"
+	"os"
+	"github.com/codegangsta/cli"
 )
-
-/*
 
 type FileStat struct {
 	Path     string
@@ -19,7 +18,6 @@ type FileStat struct {
 	Size     int64
 	Hostname string
 }
-*/
 
 // Make the Hostnames an array,
 // Store every hostname that matches the hash
@@ -38,10 +36,59 @@ func StringInArray(a string, list map[string]Hash) bool {
 	return false
 }
 
+func greper(path string, pattern string, countonly bool) {
+	var response bytes.Buffer
+	var count int
+	count = 0
+	knownHashes := grab(path)
+	fmt.Printf("searching for '%s' in %s\n", pattern, path)
 
-func cater(path string) bytes.Buffer {
+	for _, hash := range knownHashes {
+
+		var b bytes.Buffer
+		b.Write([]byte(hash.Contents))
+
+		gr, _ := gzip.NewReader(&b)
+		defer gr.Close()
+		plaintext, _ := ioutil.ReadAll(gr)
+
+		if countonly {
+			if strings.Contains(string(plaintext), pattern) {
+				count += len(hash.Hostnames)
+				continue
+			}
+		}
+
+
+		for _, a := range strings.Split(string(plaintext), "\n") {
+			if len(a) == 0 {
+				continue
+			}
+
+			if ! strings.Contains(a, pattern) {
+				continue
+			}
+
+			for _, b := range hash.Hostnames {
+
+				line := fmt.Sprintf("%s:%s\n", b, a)
+				response.Write([]byte(line))
+			}
+		}
+	}
+	if countonly {
+		fmt.Printf("Count: %d\n", count)
+	}
+	fmt.Printf(response.String())
+
+}
+
+
+
+func cater(path string) {
 	var response bytes.Buffer
 	knownHashes := grab(path)
+
 
 	for _, hash := range knownHashes {
 
@@ -63,7 +110,8 @@ func cater(path string) bytes.Buffer {
 			}
 		}
 	}
-	return response
+	// return response
+	fmt.Printf(response.String())
 
 }
 
@@ -72,7 +120,6 @@ func grab(path string) map[string]Hash {
 	var file_contents_gzipped []byte
 	knownHashes := make(map[string]Hash)
 
-	fmt.Printf("search path: %s\n", path)
 	conn, _ := redis.Dial("tcp", ":6379")
 	defer conn.Close()
 	x, _ := redis.Values(conn.Do("KEYS", path))
@@ -89,7 +136,6 @@ func grab(path string) map[string]Hash {
 			file_contents_gzipped_string, _ := redis.String(conn.Do("GET", fs.Hash))
 			file_contents_gzipped = []byte(file_contents_gzipped_string)
 			
-			fmt.Println("NEW HASH")
 			knownHashes[fs.Hash] = Hash{
 				Hostnames: []string{fs.Hostname},
 				Contents: []byte(file_contents_gzipped),
@@ -107,13 +153,51 @@ func grab(path string) map[string]Hash {
 	return  knownHashes
 }
 
-/*
 func main() {
-	if len(os.Args) != 2 {
-		fmt.Printf("usage: %s filepattern\n", os.Args[0])
-		return
+
+	app := cli.NewApp()
+	app.Name = "grab"
+	app.Usage = "Grab file data from redis server"
+
+	app.Commands = []cli.Command{
+		{
+			Name:      "cat",
+			Usage:     "add a task to the list",
+			Action:    func(c *cli.Context) {
+				if len(c.Args()) != 1 {
+					return
+				}
+				path := c.Args().First()
+				cater(path)
+			},
+		},
+		{
+			Name:      "grep",
+			Usage:     "grep for pattern",
+			Action:    func(c *cli.Context) {
+				if len(c.Args()) != 2 {
+					fmt.Printf("missing file and pattern\n")
+					return
+				}
+				path := c.Args().First()
+				pattern := c.Args()[1]
+				greper(path, pattern, false)
+			},
+		},
+		{
+			Name:      "grepcount",
+			Usage:     "count pattern",
+			Action:    func(c *cli.Context) {
+				if len(c.Args()) != 2 {
+					fmt.Printf("missing file and pattern\n")
+					return
+				}
+				path := c.Args().First()
+				pattern := c.Args()[1]
+				greper(path, pattern, true)
+			},
+		},
 	}
-	cater_response := cater(os.Args[1])
-	fmt.Printf(cater_response.String())
+	
+	app.Run(os.Args)
 }
-*/
