@@ -4,7 +4,6 @@ import (
 	"testing"
 	"os"
 	"io/ioutil"
-	"fmt"
 )
 
 func TestGetFileInfo(t *testing.T) {
